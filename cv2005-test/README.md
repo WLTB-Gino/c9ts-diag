@@ -52,3 +52,12 @@ Permissive detect: it logs all four ID register reads
 (`0x3011`, `0x3138` cv2003-style and `0x3002`, `0x3003` cv2005-style) and binds
 regardless of the value, so we always get an attach + full register log instead
 of a silent `-ENODEV`.
+
+## Making it permanent
+
+The full image (`autoupdate-full.bin`, built 2026-11-08 03:46) now ships this
+driver with its autoload entry (`/etc/modules.d/30-sensor`) and the IQ file
+(`/usr/share/sensor/cv2005-t23.bin`). Once the `/tmp` test above shows
+`probe ok`, flashing that image makes everything permanent — no manual insmod
+after that. Until then, every reboot returns to the old sc2336p attempt
+(harmless; it fails silently to `/tmp` and the old BUG spam continues).
