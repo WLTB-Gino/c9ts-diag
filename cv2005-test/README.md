@@ -33,7 +33,7 @@ insmod /tmp/sensor_cv2005_t23.ko
 dmesg | grep -i cv2005 | tail -20
 
 # 4. try to get a stream
-/etc/init.d/S31prudynt restart 2>/dev/null || true
+/etc/init.d/S31raptor restart
 ```
 
 ## Reading the result
