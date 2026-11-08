@@ -12,7 +12,10 @@ This works on the image **already flashed** on the camera (kernel is
 `3.10.14__isvp_pike_1.0__`, no MODVERSIONS → symbol names only, vermagic matches).
 **No reflash needed.**
 
-## Test procedure (over SSH)
+## Test procedure (over SSH) — only needed on the OLD sc2336p image
+
+> **If your camera already boots with cv2005** (you see `probe ok ------->cv2005`
+> early in `dmesg`), the module is already loaded — skip to "Reading the result".
 
 ```sh
 # from your PC:
@@ -41,6 +44,11 @@ dmesg | grep -i cv2005 | tail -20
 - **`probe ok ------->cv2005`** in dmesg → driver bound the chip. Check the web
   UI / RTSP stream next. Colors WILL be wrong (IQ file is a placeholder) —
   that's fine, it proves the pipeline.
+- **Bind + no video + all-zero ISP interrupts** (`isp-m0`/`isp-w02`/`isp-ivdc`
+  stuck at 0 in `/proc/interrupts` on two reads 3 s apart) → sensor output
+  stage likely not enabled (partial-power / missing LDO-enable GPIO) or MIPI
+  lanes dead. **Next step: gpio-sweep with SD-only boot** (no network) to hunt
+  for the missing enable GPIO.
 - **`cv2005 detect: ... ret = -5`** on all four ID reads → the chip is not
   responding at runtime (power sequencing issue). Copy the dmesg output back to us.
 - **insmod fails with "unknown symbol" or "invalid module format"** → kernel
