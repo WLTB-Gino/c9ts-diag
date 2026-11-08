@@ -56,16 +56,16 @@ dmesg | grep -i -E 'cv2005|sensor' | tail -30
 
 # if dmesg shows the sensor registered (no i2c errors from cv2005), start video
 mkdir -p /usr/share/sensor
-cp /tmp/cv2005-t23.bin /usr/share/sensor/   # read-only fs? if it fails, skip - prudynt may find it via /tmp
-prudynt 2>&1 | tail -40                     # or: /etc/init.d/S40prudynt restart
+cp /tmp/cv2005-t23.bin /usr/share/sensor/   # read-only fs? if it fails, skip - raptor may find it via /tmp
+raptor 2>&1 | tail -40                     # or: /etc/init.d/S31raptor restart
 ```
 
 Note: `/usr` lives in a read-only squashfs, so the `cp` of the IQ file may fail.
-That's fine for a first test — run `prudynt` from the shell and read its output.
+That's fine for a first test — run `raptor` from the shell and read its output.
 
 ## What to send back
 
-The `dmesg | grep cv2005` block and the `prudynt` output. Either result is
+The `dmesg | grep cv2005` block and the `raptor` output. Either result is
 useful:
 
 - **Driver logs ID reads then registers cleanly** → sensor talks; any remaining
