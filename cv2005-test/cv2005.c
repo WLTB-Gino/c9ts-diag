@@ -570,6 +570,41 @@ static int cv2005_write_array(struct tx_isp_subdev *sd, struct regval_list *vals
 	return 0;
 }
 
+/*
+ * DIAGNOSTIC: read back every register written by an init array and log
+ * mismatches. If the chip's register file is not actually clocked/stable,
+ * I2C still ACKs every byte but the write never lands; the MIPI front-end
+ * then never starts and the ISP sees no SoT. A wall of DIAG MISMATCH lines
+ * proves the core is dead/unpowered; a fully clean readback moves suspicion
+ * to the MIPI PHY / lane side. Skips 0x3020/0x3021 (MIPI clock port is
+ * written twice with different values in the table, late readback may
+ * legitimately differ).
+ */
+static void cv2005_verify_array(struct tx_isp_subdev *sd, struct regval_list *vals, const char *tag)
+{
+	unsigned char v;
+	int ret, mismatch = 0, checked = 0;
+
+	while (vals->reg_num != cv2005_REG_END) {
+		if (vals->reg_num != cv2005_REG_DELAY &&
+		    vals->reg_num != 0x3020 && vals->reg_num != 0x3021) {
+			ret = cv2005_read(sd, vals->reg_num, &v);
+			if (ret < 0) {
+				ISP_WARNING("cv2005 DIAG[%s]: reg 0x%04x read err %d\n",
+					    tag, vals->reg_num, ret);
+				mismatch++;
+			} else if (v != vals->value) {
+				ISP_WARNING("cv2005 DIAG[%s]: MISMATCH reg 0x%04x wrote 0x%02x read 0x%02x\n",
+					    tag, vals->reg_num, vals->value, v);
+				mismatch++;
+			}
+			checked++;
+		}
+		vals++;
+	}
+	ISP_WARNING("cv2005 DIAG[%s]: %d regs checked, %d mismatched\n", tag, checked, mismatch);
+}
+
 static int cv2005_reset(struct tx_isp_subdev *sd, int val)
 {
 	return 0;
@@ -709,6 +744,7 @@ static int cv2005_s_stream(struct tx_isp_subdev *sd, int enable)
 	int ret = 0;
 
 	if (enable) {
+		cv2005_verify_array(sd, wsize->regs, "init");
 		ret = cv2005_write_array(sd, cv2005_stream_on_mipi);
 		ISP_WARNING("cv2005 stream on\n");
 

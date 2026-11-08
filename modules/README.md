@@ -25,7 +25,7 @@ driver was cloned from the same vendor family (cv4002/cv2003) and adjusted:
 
 | File | sha256 |
 |---|---|
-| `sensor_cv2005_t23.ko` | `3a28c724ea270353e1834333baf157ae4fcd7ef09d60cfce2485237d27e05201` |
+| `sensor_cv2005_t23.ko` | `4261b2576a018bdb51f441ff94b901268b2a17b770eab003a093961c473d7b54` |
 | `cv2005-t23.bin` | `cdc008699c55a68a2484d695a7325180450a53ff2bdf5f11c4b263ba176934db` |
 
 `sensor_cv2005_t23.ko` vermagic: `3.10.14__isvp_pike_1.0__ preempt mod_unload
@@ -76,3 +76,21 @@ useful:
 - **Insmod itself fails (vermagic/Unknown symbol)** → paste the error; the
   module was built from the same tree as your running kernel so this should
   not happen.
+
+## 18:36 build — register readback diagnostic
+
+`sensor_cv2005_t23.ko` (sha256 `4261b257…`, 18.3 KiB) now verifies the init
+table at stream-on: every register written by the driver is read back and
+compared. This settles *why* there is no video:
+
+- **`cv2005 DIAG[init]: MISMATCH reg 0x…` lines** → the chip ACKs every I2C
+  byte but the write never lands (register file not clocked / core only
+  partially powered) — confirms the partial-power-up theory.
+- **`cv2005 DIAG[init]: N regs checked, 0 mismatched`** → all writes stick;
+  the core is alive and suspicion moves to the MIPI PHY / lane side.
+- **`read err` lines** → bus contention or the chip dropped off the bus.
+
+Regs `0x3020`/`0x3021` are excluded from the check (the table writes the MIPI
+clock port twice with different values — `0x60/0x09` early, `0x29/0x14` late;
+the late pair wins). Send back the full `dmesg | grep cv2005` block after a
+stream attempt and the verdict will be immediate.

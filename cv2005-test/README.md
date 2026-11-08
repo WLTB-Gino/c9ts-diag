@@ -4,7 +4,7 @@ Built 2026-11-08 03:27 from thingino-firmware `tf-swt6621s` tree.
 
 | File | What it is | SHA-256 |
 |---|---|---|
-| `sensor_cv2005_t23.ko` | Sensor driver module (17.7 KiB, MIPS32, vermagic `3.10.14__isvp_pike_1.0__`, depends `tx-isp-t23`) | `3a28c724ea270353e1834333baf157ae4fcd7ef09d60cfce2485237d27e05201` |
+| `sensor_cv2005_t23.ko` | Sensor driver module (18.3 KiB, MIPS32, vermagic `3.10.14__isvp_pike_1.0__`, depends `tx-isp-t23`) | `4261b2576a018bdb51f441ff94b901268b2a17b770eab003a093961c473d7b54` |
 | `cv2005-t23.bin` | ISP IQ file (place as `cv2005.bin`) | `cdc008699c55a68a2484d695a7325180450a53ff2bdf5f11c4b263ba176934db` |
 | `cv2005.c` | Driver source (ported from cv4002, permissive detect) | — |
 
@@ -49,6 +49,14 @@ dmesg | grep -i cv2005 | tail -20
   stage likely not enabled (partial-power / missing LDO-enable GPIO) or MIPI
   lanes dead. **Next step: gpio-sweep with SD-only boot** (no network) to hunt
   for the missing enable GPIO.
+
+## 18:36 rebuild adds readback verification
+
+The `.ko` in `modules/` (newer, sha256 `4261b257…`) prints
+`cv2005 DIAG[init]: … MISMATCH / N regs checked, N mismatched` lines at
+stream-on. All-zero mismatches → chip core is fine, fault is MIPI-side; a wall
+of mismatches → writes never land, chip not really powered. See
+`modules/README.md` for details.
 - **`cv2005 detect: ... ret = -5`** on all four ID reads → the chip is not
   responding at runtime (power sequencing issue). Copy the dmesg output back to us.
 - **insmod fails with "unknown symbol" or "invalid module format"** → kernel
