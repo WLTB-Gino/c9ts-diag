@@ -1,79 +1,78 @@
-# CV2005 experimental sensor test — Jooan C92S-U (T23)
+# CV2005 experimental sensor driver — Jooan C9TS / C92S-U (T23N, sensor @ 0x35)
 
-Built 2026-11-08 03:27 from thingino-firmware `tf-swt6621s` tree.
+Built 2026-11-09 from thingino-firmware `tf-swt6621s` tree
+(`make CAMERA=jooan_c9ts_t23n_sc2336p_swt6621s br-ingenic-sdk-rebuild`).
+Source of truth: `tf-swt6621s/overrides/ingenic-sdk/3.10.14/sensor-src/t23/cv2005.c`
+(mirrored here as `cv2005.c`).
 
-| File | What it is | SHA-256 |
+**One module, runtime-selectable configs.** No reflash between tests —
+just `rmmod` / `insmod` with a different parameter.
+
+## Files
+
+| File | What it is | SHA-256 (first 16) |
 |---|---|---|
-| `sensor_cv2005_t23.ko` | Sensor driver module (18.3 KiB, MIPS32, vermagic `3.10.14__isvp_pike_1.0__`, depends `tx-isp-t23`) | `4261b2576a018bdb51f441ff94b901268b2a17b770eab003a093961c473d7b54` |
-| `cv2005-t23.bin` | ISP IQ file (place as `cv2005.bin`) | `cdc008699c55a68a2484d695a7325180450a53ff2bdf5f11c4b263ba176934db` |
-| `cv2005.c` | Driver source (ported from cv4002, permissive detect) | — |
+| `sensor_cv2005_t23.ko` | Current build: REV-F variant param + settle adaptive (variant A baked in) | `7816c1c0b4074602` |
+| `cv2005-t23.bin` | ISP IQ file (place as `cv2005.bin`) — placeholder IQ, colors will be off | `cdc008699c55a68a` |
+| `cv2005.c` | Driver source mirror | — |
+| `variants/cv2005-settle1-clk960.ko` | Older variant-A-only build (identical to current `.ko`; kept for checksum reference) | `7816c1c0b4074602` |
+| `variants/sensor_cv2005_t23_revE-a-baseline.ko` | Older REV-E baseline (pre-0x3000 fix) | in `tf-swt6621s/revE-variants/` |
 
-This works on the image **already flashed** on the camera (kernel is
-`3.10.14__isvp_pike_1.0__`, no MODVERSIONS → symbol names only, vermagic matches).
-**No reflash needed.**
+## What changed and why (history)
 
-## Test procedure (over SSH) — only needed on the OLD sc2336p image
+1. **Detect/port (Nov 8):** driver ported from cv2003s1, permissive detect for
+   the 0x35 responder (chip_id reg reads 0x2003).
+2. **Stream register fix (Nov 9, the big one):** the old cv2003s1-style stream
+   control `0x0100` is **unmapped** on this chip (writes ACK, value never
+   changes). All newer CV drivers (cv4002 t23, cv2001/3001/4001/5001 t41,
+   cv8001 t40) stream via **`0x3000`: 0x00 = streaming, 0x01 = standby**.
+   The port had been "streaming on" through a nonexistent register → sensor
+   stayed in standby → silent MIPI, black stream. Fixed.
+3. **REV-F bisection params:** `cv2005_variant=` insmod param
+   - bit0 = cv4002 PLL (0x3024/25 = 70/03 instead of baseline 6C/02)
+   - bit1 = cv4002 PHY block (0x3030, 0x3034–0x303F) + `0x3300 = 0x00`
+4. **Variant A (settle adaptive):** `settle_time_apative_en` 0→1 baked in
+   (attribute table, line ~380).
 
-> **If your camera already boots with cv2005** (you see `probe ok ------->cv2005`
-> early in `dmesg`), the module is already loaded — skip to "Reading the result".
+## Test procedure (over SSH)
 
 ```sh
-# from your PC:
-scp sensor_cv2005_t23.ko cv2005-t23.bin root@192.168.20.113:/tmp/
-ssh root@192.168.20.113
+scp sensor_cv2005_t23.ko root@<camera-ip>:/tmp/
+ssh root@<camera-ip>
+
+rmmod sensor_cv2005_t23 2>/dev/null
+insmod /tmp/sensor_cv2005_t23.ko cv2005_variant=N      # N = 0,1,2,3
+dmesg | tail -5        # expect: "cv2005 REV-F: variant=N (pll=... phy=... 3300=...)"
+/etc/init.d/S31raptor restart    # trigger stream-on
+dmesg | grep 'DIAG\[stream\]'
 ```
 
-On the camera:
+Expected healthy DIAG line: `0x3020=29 0x3021=14 ... 0x3000=0x00`, PLL bytes
+matching the matrix column, `0x3300`/`0x3038` matching too. `0x0100` is the
+negative control (unmapped, stays 0x00).
 
-```sh
-# 1. unload the old (dead) sensor driver if it's loaded
-rmmod sensor_sc2336p_t23 2>/dev/null
+## Variant matrix
 
-# 2. load the cv2005 driver
-insmod /tmp/sensor_cv2005_t23.ko
+| variant | PLL 3024/25 | PHY 3038..3F block | 3300 | meaning |
+|---|---|---|---|---|
+| 0 | 6C/02 | baseline | 0x01 | REV-E baseline (control) |
+| 1 | 70/03 | baseline | 0x01 | cv4002 PLL only |
+| 2 | 6C/02 | cv4002 | 0x00 | cv4002 PHY+lane timing only |
+| 3 | 70/03 | cv4002 | 0x00 | full cv4002-style |
 
-# 3. check what the chip said
-dmesg | grep -i cv2005 | tail -20
+**Test order (fastest bisection):** 3 → 2 → 1 → 0.
+Variant 3 first (most likely if the chip is cv4002-class), 0 last as control.
+Full runbook: `tf-swt6621s/revE-variants/TEST-MATRIX.md`.
 
-# 4. try to get a stream
-/etc/init.d/S31raptor restart
-```
+## Success criteria
 
-## Reading the result
+- DIAG shows `0x3000=0x00` + expected PLL/PHY values → writes landed
+- Stream shows **non-black frames** → that's our working config; stop and report
+- If DIAG values come back 0xff/0x00 where data is expected → NACK/RAZ, note it
 
-- **`probe ok ------->cv2005`** in dmesg → driver bound the chip. Check the web
-  UI / RTSP stream next. Colors WILL be wrong (IQ file is a placeholder) —
-  that's fine, it proves the pipeline.
-- **Bind + no video + all-zero ISP interrupts** (`isp-m0`/`isp-w02`/`isp-ivdc`
-  stuck at 0 in `/proc/interrupts` on two reads 3 s apart) → sensor output
-  stage likely not enabled (partial-power / missing LDO-enable GPIO) or MIPI
-  lanes dead. **Next step: gpio-sweep with SD-only boot** (no network) to hunt
-  for the missing enable GPIO.
+## Ground-truth rules learned on this hardware
 
-## 18:36 rebuild adds readback verification
-
-The `.ko` in `modules/` (newer, sha256 `4261b257…`) prints
-`cv2005 DIAG[init]: … MISMATCH / N regs checked, N mismatched` lines at
-stream-on. All-zero mismatches → chip core is fine, fault is MIPI-side; a wall
-of mismatches → writes never land, chip not really powered. See
-`modules/README.md` for details.
-- **`cv2005 detect: ... ret = -5`** on all four ID reads → the chip is not
-  responding at runtime (power sequencing issue). Copy the dmesg output back to us.
-- **insmod fails with "unknown symbol" or "invalid module format"** → kernel
-  mismatch; the full integrated image would be needed instead.
-
-## What this driver does differently
-
-Permissive detect: it logs all four ID register reads
-(`0x3011`, `0x3138` cv2003-style and `0x3002`, `0x3003` cv2005-style) and binds
-regardless of the value, so we always get an attach + full register log instead
-of a silent `-ENODEV`.
-
-## Making it permanent
-
-The full image (`autoupdate-full.bin`, built 2026-11-08 03:46) now ships this
-driver with its autoload entry (`/etc/modules.d/30-sensor`) and the IQ file
-(`/usr/share/sensor/cv2005-t23.bin`). Once the `/tmp` test above shows
-`probe ok`, flashing that image makes everything permanent — no manual insmod
-after that. Until then, every reboot returns to the old sc2336p attempt
-(harmless; it fails silently to `/tmp` and the old BUG spam continues).
+- I2C ACK ≠ verified: RAZ registers ACK. Only MIPI CSI output is truth.
+- The chip is only responsive while the `.ko` is loaded (rmmod → i2ctransfer
+  dies with I2C_RDWR I/O error): it needs SoC-driven MCLK, no independent rail.
+- Always `rmmod` before loading any other build.
