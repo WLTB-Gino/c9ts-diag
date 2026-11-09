@@ -25,7 +25,7 @@ driver was cloned from the same vendor family (cv4002/cv2003) and adjusted:
 
 | File | sha256 |
 |---|---|
-| `sensor_cv2005_t23.ko` | `4261b2576a018bdb51f441ff94b901268b2a17b770eab003a093961c473d7b54` |
+| `sensor_cv2005_t23.ko` | `30981e1bfaaade2f654d6ab131186302b843fa494820b54f8c3ab9e96c3a373f` |
 | `cv2005-t23.bin` | `cdc008699c55a68a2484d695a7325180450a53ff2bdf5f11c4b263ba176934db` |
 
 `sensor_cv2005_t23.ko` vermagic: `3.10.14__isvp_pike_1.0__ preempt mod_unload

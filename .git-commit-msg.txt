@@ -1,0 +1,15 @@
+cv2005: settle-lp adaptive build (variant A) + readback .ko refresh
+
+- variants/cv2005-settle1-clk960.ko: cv2005_attr mipi.settle_time_apative_en
+  0 -> 1 (sha256 7816c1c0b4074602c213c6d7e38741144fdb737531a9e20ae6e8c6ffbfeea8dd,
+  21196 bytes). First candidate for the bind-no-video issue: lets the RX
+  settle-lane-count adaptive timing engage instead of forcing fixed settle.
+- cv2005-test/{cv2005.c,sensor_cv2005_t23.ko}: readback-diagnostic refresh
+  (sha256 30981e1bfaaade2f654d6ab131186302b843fa494820b54f8c3ab9e96c3a373f)
+  built from the same tree via br-ingenic-sdk-rebuild.
+- Rebuild command (works, incremental):
+  make CAMERA=jooan_c9ts_t23n_sc2336p_swt6621s br-ingenic-sdk-rebuild
+  (raw build.sh t23 fails at tx-isp-debug.c -Wint-conversion; the package
+  build carries the right flags/env)
+- Variants dir will grow: settle0-clk720, settle1-clk720 after variant A
+  verdict. Test = scp .ko to /tmp, rmmod/insmod, dmesg | grep -i cv2005.

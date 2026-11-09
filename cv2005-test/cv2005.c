@@ -57,6 +57,20 @@ static int shvflip = 1;
 module_param(shvflip, int, S_IRUGO);
 MODULE_PARM_DESC(shvflip, "Sensor HV Flip Enable interface");
 
+/* REV-F: runtime PLL/PHY bisection for the black-stream bug. The static
+ * init table ends with baseline cv2003s1-style values (PLL 3024/25 =
+ * 6C/02, PHY 3038-3F = 04 00 80 07 04 00 38 04, 3300 = 0x01). The in-tree
+ * cv4002 instead ships PLL 70/03 and PHY 3030=01 3038=88 3039=00 303A=00
+ * 303B=09 3034=08 3035=00 3036=10 3037=05 303C-3F = 48 00 20 05 with
+ * 3300 = 0x00. Bitfield:
+ *   bit0: PLL  -> 1 = cv4002 (70/03), 0 = baseline (6C/02)
+ *   bit1: PHY  -> 1 = cv4002 block + 3300=0x00, 0 = baseline + 3300=0x01
+ * variant=0 baseline (pure REV-E), 1 = PLL only, 2 = PHY only, 3 = full
+ * cv4002-style. Applied AFTER the main table so overrides win. */
+static int cv2005_variant = 0;
+module_param(cv2005_variant, int, S_IRUGO);
+MODULE_PARM_DESC(cv2005_variant, "PLL/PHY variant: bit0=cv4002 PLL(70/03), bit1=cv4002 PHY+3300=00");
+
 struct regval_list {
 	uint16_t reg_num;
 	unsigned char value;
@@ -363,7 +377,7 @@ struct tx_isp_sensor_attribute cv2005_attr={
 		.mode = SENSOR_MIPI_OTHER_MODE,
 		.clk = 960,
 		.lans = 2,
-		.settle_time_apative_en = 0,
+		.settle_time_apative_en = 1,
 		.mipi_sc.sensor_csi_fmt = TX_SENSOR_RAW10,//RAW10
 		.mipi_sc.hcrop_diff_en = 0,
 		.mipi_sc.mipi_vcomp_en = 0,
@@ -479,14 +493,38 @@ static struct tx_isp_sensor_win_setting cv2005_win_sizes[] = {
 };
 struct tx_isp_sensor_win_setting *wsize = &cv2005_win_sizes[0];
 
+/* REV-E: CV2005 uses the newer CV register map (like cv4002/cv2001/cv3001):
+ * streaming control lives at 0x3000, polarity INVERTED vs the old 0x0100
+ * Sony-style register: 0x3000 = 0x00 -> streaming, 0x3000 = 0x01 -> standby.
+ * 0x0100 is unmapped on this chip (writes ACK, reads 0x00, no state change)
+ * which left the sensor in standby forever - root cause of "zero MIPI
+ * packets, zero ISP frame starts, pure black stream". */
 static struct regval_list cv2005_stream_on_mipi[] = {
-	{0x0100, 0x01},
+	{0x3000, 0x00},	/* 0 = streaming (CV4002-style map) */
 	{cv2005_REG_END, 0x00},	/* END MARKER */
 };
 
 static struct regval_list cv2005_stream_off_mipi[] = {
-	{0x0100, 0x00},
+	{0x3000, 0x01},	/* 1 = standby (CV4002-style map) */
 	{cv2005_REG_END, 0x00},	/* END MARKER */
+};
+
+/* REV-F override arrays, written after the main init table (same order as
+ * the cv4002 source table so PHY gating regs land like the vendor does). */
+static struct regval_list cv2005_variant_pll_cv4002[] = {
+	{0x3024, 0x70}, {0x3025, 0x03},
+	{cv2005_REG_END, 0x00},
+};
+static struct regval_list cv2005_variant_phy_cv4002[] = {
+	{0x303C, 0x48}, {0x303D, 0x00}, {0x303E, 0x20}, {0x303F, 0x05},
+	{0x3030, 0x01},
+	{0x3038, 0x88}, {0x3039, 0x00}, {0x303A, 0x00}, {0x303B, 0x09},
+	{0x3034, 0x08}, {0x3035, 0x00}, {0x3036, 0x10}, {0x3037, 0x05},
+	{cv2005_REG_END, 0x00},
+};
+static struct regval_list cv2005_variant_3300_0[] = {
+	{0x3300, 0x00},
+	{cv2005_REG_END, 0x00},
 };
 
 int cv2005_read(struct tx_isp_subdev *sd, uint16_t reg, unsigned char *value)
@@ -580,6 +618,34 @@ static int cv2005_write_array(struct tx_isp_subdev *sd, struct regval_list *vals
  * written twice with different values in the table, late readback may
  * legitimately differ).
  */
+
+/*
+ * REV-C flat scan: walk the whole 0x3000-0x3FFF window and print every
+ * address that reads back non-zero. Read-only fingerprint of what is
+ * actually mapped on this silicon - whatever lights up is the real
+ * register map, independent of the init table. Pre-init it shows the
+ * power-on map (chip identity clues); post-init it shows which config
+ * writes landed and where the live clock/MIPI block actually sits.
+ */
+static void cv2005_flat_scan(struct tx_isp_subdev *sd, const char *tag)
+{
+	unsigned int addr;
+	unsigned char v;
+	int hits = 0, err = 0;
+
+	for (addr = 0x3000; addr <= 0x3FFF; addr++) {
+		if (cv2005_read(sd, addr, &v) < 0) {
+			err++;
+			continue;
+		}
+		if (v != 0x00) {
+			ISP_WARNING("cv2005 SCAN[%s]: 0x%04x = 0x%02x\n", tag, addr, v);
+			hits++;
+		}
+	}
+	ISP_WARNING("cv2005 SCAN[%s]: %d non-zero hits, %d read errors\n", tag, hits, err);
+}
+
 static void cv2005_verify_array(struct tx_isp_subdev *sd, struct regval_list *vals, const char *tag)
 {
 	unsigned char v;
@@ -648,6 +714,9 @@ static int cv2005_detect(struct tx_isp_subdev *sd, unsigned int *ident)
 		*ident = (*ident << 8) | id_l;
 
 	ISP_WARNING("cv2005 detect: ident = 0x%04x (permissive probe, no ID gate)\n", *ident);
+
+	/* REV-C: pre-init fingerprint scan, before any table write touches the chip */
+	cv2005_flat_scan(sd, "preinit");
 
 	return 0;
 }
@@ -733,6 +802,20 @@ static int cv2005_init(struct tx_isp_subdev *sd, int enable)
 
 	if (ret)
 		return ret;
+
+	/* REV-F: runtime variant overrides (see cv2005_variant above). */
+	ISP_WARNING("cv2005 REV-F: variant=%d (pll=%s phy=%s 3300=%s)\n",
+		    cv2005_variant,
+		    (cv2005_variant & 1) ? "cv4002(70/03)" : "baseline(6C/02)",
+		    (cv2005_variant & 2) ? "cv4002" : "baseline",
+		    (cv2005_variant & 2) ? "0x00" : "0x01");
+	if (cv2005_variant & 1)
+		cv2005_write_array(sd, cv2005_variant_pll_cv4002);
+	if (cv2005_variant & 2) {
+		cv2005_write_array(sd, cv2005_variant_phy_cv4002);
+		cv2005_write_array(sd, cv2005_variant_3300_0);
+	}
+
 	ret = tx_isp_call_subdev_notify(sd, TX_ISP_EVENT_SYNC_SENSOR_ATTR, &sensor->video);
 	sensor->priv = wsize;
 
@@ -747,7 +830,28 @@ static int cv2005_s_stream(struct tx_isp_subdev *sd, int enable)
 		cv2005_verify_array(sd, wsize->regs, "init");
 		ret = cv2005_write_array(sd, cv2005_stream_on_mipi);
 		ISP_WARNING("cv2005 stream on\n");
-
+		/* REV-E: readback after init + stream-on. 0x3020/21 = VTS
+		 * (expect 29/14), 0x3024/25 = PLL (expect 6C/02).
+		 * 0x3000 = streaming state: 0x00 = streaming, 0x01 = standby.
+		 * If 0x3000 reads 0x01 here the sensor never left standby.
+		 * 0x0100 is a negative control: unmapped, should stay 0x00. */
+		{
+			unsigned char v20 = 0, v21 = 0, v24 = 0, v25 = 0, v00 = 0, v30 = 0xff;
+			unsigned char v33 = 0xff, v38 = 0;
+			cv2005_read(sd, 0x3020, &v20);
+			cv2005_read(sd, 0x3021, &v21);
+			cv2005_read(sd, 0x3024, &v24);
+			cv2005_read(sd, 0x3025, &v25);
+			cv2005_read(sd, 0x3000, &v30);
+			cv2005_read(sd, 0x0100, &v00);
+			cv2005_read(sd, 0x3300, &v33);
+			cv2005_read(sd, 0x3038, &v38);
+			ISP_WARNING("cv2005 DIAG[stream]: 0x3020=0x%02x 0x3021=0x%02x 0x3024=0x%02x 0x3025=0x%02x 0x3000=0x%02x 0x0100=0x%02x 0x3300=0x%02x 0x3038=0x%02x (expect 29/14/<pll>/02/00/xx/<3300>/<3038>)\n",
+				    v20, v21, v24, v25, v30, v00, v33, v38);
+			/* REV-C: post-init fingerprint scan - which writes landed,
+			 * and where the live clock/MIPI block actually sits */
+			cv2005_flat_scan(sd, "postinit");
+		}
 	} else {
 		ret = cv2005_write_array(sd, cv2005_stream_off_mipi);
 		ISP_WARNING("cv2005 stream off\n");

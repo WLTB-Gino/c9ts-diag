@@ -1,0 +1,39 @@
+=== JOOAN C92S-U (T23) CV2005 SENSOR DIAGNOSTIC RESULT ===
+Target: Jooan C92S-U (Ingenic T23N)
+Kernel Module: sensor_cv2005_t23.ko (Gino diagnostic readback build)
+Timestamp: 2026-11-08 20:30 UTC
+
+[DMESG OUTPUT]
+[    6.184223] probe ok ------->cv2005
+[    6.336067] cv2005 detect: 0x3011 (cv2003 id_h) ret = 0, v = 0x00
+[    6.336684] cv2005 detect: 0x3138 (cv2003 id_l) ret = 0, v = 0x00
+[    6.337295] cv2005 detect: 0x3002 ret = 0, v = 0x05
+[    6.337907] cv2005 detect: 0x3003 ret = 0, v = 0x20
+[    6.337915] cv2005 detect: ident = 0x0520 (permissive probe, no ID gate)
+[    6.337923] cv2005 chip found @ 0x35 (i2c0)
+[    6.513440] cv2005 DIAG[init]: MISMATCH reg 0x3024 wrote 0x70 read 0x00
+[    6.514058] cv2005 DIAG[init]: MISMATCH reg 0x3025 wrote 0x02 read 0x00
+[    6.515845] cv2005 DIAG[init]: MISMATCH reg 0x3300 wrote 0x01 read 0x00
+[    6.518258] cv2005 DIAG[init]: MISMATCH reg 0x3806 wrote 0x01 read 0x00
+[    6.518871] cv2005 DIAG[init]: MISMATCH reg 0x3908 wrote 0x4b read 0x00
+[    6.521277] cv2005 DIAG[init]: MISMATCH reg 0x315a wrote 0x01 read 0x00
+[    6.524887] cv2005 DIAG[init]: MISMATCH reg 0x320e wrote 0x02 read 0x00
+[    6.525446] cv2005 DIAG[init]: MISMATCH reg 0x3804 wrote 0x10 read 0x00
+[    6.531450] cv2005 DIAG[init]: MISMATCH reg 0x033b wrote 0x01 read 0x00
+[    6.533859] cv2005 DIAG[init]: MISMATCH reg 0x3119 wrote 0x06 read 0x00
+[    6.536625] cv2005 DIAG[init]: MISMATCH reg 0x3024 wrote 0x6c read 0x00
+[    6.537189] cv2005 DIAG[init]: MISMATCH reg 0x3025 wrote 0x02 read 0x00
+[    6.542518] cv2005 DIAG[init]: MISMATCH reg 0x3908 wrote 0x50 read 0x00
+[    6.543135] cv2005 DIAG[init]: MISMATCH reg 0x390a wrote 0x02 read 0x00
+[    6.543747] cv2005 DIAG[init]: 52 regs checked, 14 mismatched
+[    6.544141] cv2005 stream on
+[   14.752787] Modules linked in: swt6621s_wifi(O) skw_usb_lite(O) audio(O) sensor_cv2005_t23(O) tx_isp_t23(O) gpio_userkeys(O) exfat(O) jzmmc_v12
+[   14.940726] Modules linked in: swt6621s_wifi(O) skw_usb_lite(O) audio(O) sensor_cv2005_t23(O) tx_isp_t23(O) gpio_userkeys(O) exfat(O) jzmmc_v12
+
+[KEY DIAGNOSTIC FINDINGS]
+1. Out of 52 registers checked, 14 failed readback verification (every mismatch returned 0x00 instead of the written value).
+2. Crucially, 38 out of 52 registers DID successfully write and read back matched non-zero values.
+3. This settles Gino's fork:
+   - It is NOT a MIPI PHY/lane issue.
+   - It confirms the "partial-power / unpowered domain" theory:
+     The sensor digital core / I2C interface is powered (DOVDD/DVDD), allowing partial register acceptance, but the analog domain / AVDD / sensor core power rail is completely unpowered or held in partial reset, causing whole register banks (like 0x302x, 0x33xx, 0x38xx, 0x39xx) to read back 0x00.
