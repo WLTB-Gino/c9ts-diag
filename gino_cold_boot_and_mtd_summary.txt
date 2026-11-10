@@ -1,0 +1,28 @@
+=== JOOAN C92S-U (T23N) COLD BOOT & MTD DUMP FOR GINO ===
+Date: 2026-11-09 22:14 GMT
+Board: Jooan C92S-U (Ingenic T23N)
+
+[1. FLASH LAYOUT (/proc/mtd)]
+dev:    size:    erasesize: name:
+mtd0: 00050000 00008000 "boot"       (320KB)
+mtd1: 00010000 00008000 "env"        (64KB)
+mtd2: 00010000 00008000 "backup"     (64KB)
+mtd3: 00190000 00008000 "kernel"     (1600KB)
+mtd4: 00570000 00008000 "rootfs"     (5568KB, squashfs)
+mtd5: 00090000 00008000 "data"       (576KB)
+mtd6: 00800000 00008000 "all"        (8192KB / 8MB SPI NOR)
+
+[2. KERNEL BOOT COMMAND LINE (/proc/cmdline)]
+mem=41M@0x0 rmem=23M@0x2900000 console=ttyS1,115200n8 panic=2 root=/dev/mtdblock4 rootfstype=squashfs init=/init mtdparts=jz_sfc:320k(boot),64k(env),64k(backup),1600k(kernel),5568k(rootfs),576k(data),8192k@0(all)
+
+[3. CRITICAL OBSERVATIONS FOR GINO]
+- Flash / WDT: Standard 8MB SPI NOR flash layout. No flash corruptions or missing blocks.
+- The splat seen at 13.76s is:
+  "BUG: scheduling while atomic: wpa_supplicant/815/0x00000202"
+  Origin: swt6621s_wifi driver calling a blocking/schedule function in an atomic context during wifi initialization. It is UNRELATED to the ISP or camera sensor.
+- The ISP stream timeout occurs later:
+  [  18.595629] wait stop  q->num_buffers=2 q->done_count=0
+  [  18.995459] streamoff stop！！
+  [  19.565458] wait stop  q->num_buffers=2 q->done_count=0
+  [  19.965503] streamoff stop！！
+  This confirms q->done_count=0 (no MIPI frames received).

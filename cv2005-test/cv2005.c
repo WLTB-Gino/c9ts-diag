@@ -71,9 +71,33 @@ static int cv2005_variant = 0;
 module_param(cv2005_variant, int, S_IRUGO);
 MODULE_PARM_DESC(cv2005_variant, "PLL/PHY variant: bit0=cv4002 PLL(70/03), bit1=cv4002 PHY+3300=00");
 
+/* REV-G: init-table forensics bitfield. The stock-spliced table (a) stomps
+ * the leading PLL/VTS setup (3020=60/3021=09 + 3024=70/02) with VTS values
+ * (29/14) + baseline PLL (6C/02) mid-table, and (b) never issues the 0x0103
+ * software reset that other CV-family tables start with. Bitfield:
+ *   bit0: no-stomp  -> re-assert leading values (3020=60 3021=09
+ *         3024=70 3025=02) AFTER the table (mid-table stomp stays, harmless).
+ *   bit1: sw-reset  -> {0x0103=0x01, 10ms, 0x0103=0x00} BEFORE the table.
+ *   bit2: range dump-> dense dump 0x3000-0x305F (8 regs/line) after the
+ *         existing stream-on readback.
+ * gmode=0 reproduces REV-F behavior exactly. Pure test values:
+ *   G0: cv2005_gmode=1   G1: cv2005_gmode=2   G2: cv2005_gmode=4
+ * Combos legal (3 = G0+G1, 7 = all). cv2005_variant still applies AFTER
+ * gmode bit0, so variant remains the final-word PLL/PHY knob. */
+static int cv2005_gmode = 0;
+module_param(cv2005_gmode, int, S_IRUGO);
+MODULE_PARM_DESC(cv2005_gmode, "REV-G: bit0=no-PLL-stomp(restore 60/09/70/02), bit1=0x0103 sw-reset prefix, bit2=dump 3000-305F");
+
 struct regval_list {
 	uint16_t reg_num;
 	unsigned char value;
+};
+
+static struct regval_list cv2005_sw_reset[] = {
+	{0x0103, 0x01},
+	{cv2005_REG_DELAY, 10},
+	{0x0103, 0x00},
+	{cv2005_REG_END, 0}
 };
 
 /*
@@ -798,10 +822,30 @@ static int cv2005_init(struct tx_isp_subdev *sd, int enable)
 	sensor->video.mbus.colorspace = wsize->colorspace;
 	sensor->video.fps = wsize->fps;
 
+	/* REV-G bit1: vendor-style 0x0103 software reset before the table.
+	 * Other CV tables start with this; ours never did. If 0x0103 is as
+	 * unmapped as 0x0100 this is a harmless negative control. */
+	if (cv2005_gmode & 2) {
+		ISP_WARNING("cv2005 REV-G: gmode=%d issuing 0x0103 sw-reset prefix\n",
+			    cv2005_gmode);
+		cv2005_write_array(sd, cv2005_sw_reset);
+	}
+
 	ret = cv2005_write_array(sd, wsize->regs);
 
 	if (ret)
 		return ret;
+
+	/* REV-G bit0: re-assert the leading PLL/VTS setup the spliced table
+	 * stomps mid-flight (3020=60/3021=09 + 3024=70/02). */
+	if (cv2005_gmode & 1) {
+		ISP_WARNING("cv2005 REV-G: gmode=%d restoring leading PLL/VTS (60/09/70/02)\n",
+			    cv2005_gmode);
+		cv2005_write(sd, 0x3020, 0x60);
+		cv2005_write(sd, 0x3021, 0x09);
+		cv2005_write(sd, 0x3024, 0x70);
+		cv2005_write(sd, 0x3025, 0x02);
+	}
 
 	/* REV-F: runtime variant overrides (see cv2005_variant above). */
 	ISP_WARNING("cv2005 REV-F: variant=%d (pll=%s phy=%s 3300=%s)\n",
@@ -851,6 +895,18 @@ static int cv2005_s_stream(struct tx_isp_subdev *sd, int enable)
 			/* REV-C: post-init fingerprint scan - which writes landed,
 			 * and where the live clock/MIPI block actually sits */
 			cv2005_flat_scan(sd, "postinit");
+			/* REV-G bit2: dense dump 0x3000-0x305F, 8 regs/line. */
+			if (cv2005_gmode & 4) {
+				int row, col;
+				unsigned char b[8] = {0};
+				for (row = 0; row < 0x60; row += 8) {
+					for (col = 0; col < 8; col++)
+						cv2005_read(sd, 0x3000 + row + col, &b[col]);
+					ISP_WARNING("cv2005 DIAG[range] 0x30%02x-%02x: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+						    row, row + 7, b[0], b[1], b[2], b[3],
+						    b[4], b[5], b[6], b[7]);
+				}
+			}
 		}
 	} else {
 		ret = cv2005_write_array(sd, cv2005_stream_off_mipi);
