@@ -12,10 +12,10 @@ just `rmmod` / `insmod` with a different parameter.
 
 | File | What it is | SHA-256 (first 16) |
 |---|---|---|
-| `sensor_cv2005_t23.ko` | Current build: REV-F variant param + settle adaptive (variant A baked in) | `7816c1c0b4074602` |
+| `sensor_cv2005_t23.ko` | Current build: **REV-G** `cv2005_gmode` param (1=PLL-restore, 2=0x0103 sw-reset, 4=both+3000-305F dump) + REV-F `cv2005_variant` param + settle adaptive | `70fe9abd36d879ba` |
 | `cv2005-t23.bin` | ISP IQ file (place as `cv2005.bin`) — placeholder IQ, colors will be off | `cdc008699c55a68a` |
 | `cv2005.c` | Driver source mirror | — |
-| `variants/cv2005-settle1-clk960.ko` | Older variant-A-only build (identical to current `.ko`; kept for checksum reference) | `7816c1c0b4074602` |
+| `variants/cv2005-settle1-clk960.ko` | Pre-REV-G REV-F build (7816c1c0); kept for checksum reference | `7816c1c0b4074602` |
 | `variants/sensor_cv2005_t23_revE-a-baseline.ko` | Older REV-E baseline (pre-0x3000 fix) | in `tf-swt6621s/revE-variants/` |
 
 ## What changed and why (history)
