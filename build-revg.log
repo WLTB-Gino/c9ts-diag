@@ -1,0 +1,46 @@
+CAMERA_CONFIG = configs/cameras/jooan_c9ts_t23n_sc2336p_swt6621s/jooan_c9ts_t23n_sc2336p_swt6621s_defconfig
+CAMERA_CONFIG_REAL = /home/gino/.gino/workspace/tf-swt6621s/configs/cameras/jooan_c9ts_t23n_sc2336p_swt6621s/jooan_c9ts_t23n_sc2336p_swt6621s_defconfig
+CAMERA = jooan_c9ts_t23n_sc2336p_swt6621s
+TOOLCHAIN_LIBC: uclibc
+OUTPUT_DIR: /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc
+[1;38;5;30mcheck-config[0m
+Configuration is up to date
+[1;38;5;30mbr-ingenic-sdk-rebuild[0m
+make -C /home/gino/.gino/workspace/tf-swt6621s/buildroot BR2_EXTERNAL=/home/gino/.gino/workspace/tf-swt6621s O=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc BR2_DL_DIR=/home/gino/.gino/workspace/tf-swt6621s/dl ingenic-sdk-rebuild
+make[1]: Entering directory '/home/gino/.gino/workspace/tf-swt6621s/buildroot'
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_rsynced
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_installed
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_staging_installed
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_target_installed
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_images_installed
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_host_installed
+rm -f /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_built
+>>> ingenic-sdk custom Syncing from source dir /home/gino/.gino/workspace/tf-swt6621s/overrides/ingenic-sdk
+rsync -au --chmod=u=rwX,go=rX  --exclude .svn --exclude .git --exclude .hg --exclude .bzr --exclude CVS /home/gino/.gino/workspace/tf-swt6621s/overrides/ingenic-sdk/ /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom
+>>> ingenic-sdk custom Building
+>>> ingenic-sdk custom Building kernel module(s)
+GIT_DIR=. PATH="/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/bin:/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" PKG_CONFIG="/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/bin/pkg-config" PKG_CONFIG_SYSROOT_DIR="/" PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 PKG_CONFIG_LIBDIR="/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/lib/pkgconfig:/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/share/pkgconfig" BR_BINARIES_DIR=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/images /usr/bin/make -j17 -C /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/linux-a419397f3d0c6e7fcfe2173a7e34c8f3473d3b01 HOSTCC="/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/bin/ccache /usr/bin/gcc -O2 -isystem /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/include -L/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/lib -Wl,-rpath,/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/lib" ARCH=mips KCFLAGS="-Wno-attribute-alias" INSTALL_MOD_PATH=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/target CROSS_COMPILE="/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/host/bin/mipsel-linux-" WERROR=0 REGENERATE_PARSERS=1 DEPMOD=true INSTALL_MOD_STRIP=1 SOC_FAMILY=t23 KERNEL_VERSION=3.10.14 INSTALL_MOD_PATH=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/per-package/ingenic-sdk/target INSTALL_MOD_DIR=ingenic SENSOR_1_MODEL=cv2005 CONFIG_INGENIC_ISP=y CONFIG_INGENIC_SENSOR=y CONFIG_INGENIC_AUDIO=y CONFIG_INGENIC_AVPU=n CONFIG_INGENIC_SOC_NNA=n CONFIG_INGENIC_MPSYS=n CONFIG_INGENIC_JZ_DTRNG=n CONFIG_INGENIC_GPIO_USERKEYS=y CONFIG_INGENIC_JZ_AES=n CONFIG_INGENIC_TCU_ALLOC=y CONFIG_INGENIC_PWM=n CONFIG_INGENIC_MOTOR=y    EXTRA_CFLAGS="-DCONFIG_KERNEL_3_10" PWD=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/. M=/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/. modules
+ingenic-sdk: soc=t23 kernel=3.10.14
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/audio/t23/oss3/audio_dsp.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/audio/t23/oss3/audio_debug.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/audio/t23/oss3/host/audio_aic.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/audio/t23/oss3/inner_codecs/codec.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/audio/t23/oss3/board/t23_platform.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/misc/gpio-userkeys/gpio-userkeys.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/misc/motor/motor.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/sensor-src/t23/cv2005.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/misc/tcu_alloc/tcu_alloc.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/isp/t23/tx-isp-debug.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/isp/t23/tx-isp-module.o
+  CC [M]  /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/isp/common/tx-isp-sinfo.o
+<command-line>: warning: 'KBUILD_MODNAME' redefined
+<command-line>: note: this is the location of the previous definition
+../ingenic-sdk-custom/3.10.14/sensor-src/t23/cv2005.c:91:27: error: array type has incomplete element type 'struct regval_list'
+   91 | static struct regval_list cv2005_sw_reset[] = {
+      |                           ^~~~~~~~~~~~~~~
+make[3]: *** [scripts/Makefile.build:308: /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/./3.10.14/sensor-src/t23/cv2005.o] Error 1
+make[2]: *** [Makefile:1230: _module_/home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.] Error 2
+make[1]: *** [package/pkg-generic.mk:274: /home/gino/.gino/workspace/tf-swt6621s/output/c9ts-swt6621s-local/jooan_c9ts_t23n_sc2336p_swt6621s-3.10.14-uclibc/build/ingenic-sdk-custom/.stamp_built] Error 2
+make[1]: Leaving directory '/home/gino/.gino/workspace/tf-swt6621s/buildroot'
+make: *** [/home/gino/.gino/workspace/tf-swt6621s/Makefile.utils:13: br-ingenic-sdk-rebuild] Error 2
+BUILD_EXIT=1
