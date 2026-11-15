@@ -85,8 +85,16 @@ log "=== evidence: frame/sensor signatures ==="
 run dmesg | grep -i 'frame\|cv2005\|mipi\|isp' | tail -20
 
 # 8. snapshot attempt (size check tells us if it is a real frame)
-wget -q -O /tmp/planA-snap.jpg http://127.0.0.1/image.jpg 2>/dev/null
-[ -s /tmp/planA-snap.jpg ] && log "snapshot: $(wc -c < /tmp/planA-snap.jpg) bytes"
+# HARDENED: never call wget unbounded (busybox wget may have no timeout
+# support — this exact call wedged a C9TS boot on 2026-11-15 when the
+# streamer was down). Port check first, hard timeout always.
+if netstat -tln 2>/dev/null | grep -q ':80 '; then
+	timeout 8 wget -q -O /tmp/planA-snap.jpg http://127.0.0.1/image.jpg 2>/dev/null
+	[ -s /tmp/planA-snap.jpg ] && log "snapshot: $(wc -c < /tmp/planA-snap.jpg) bytes" \
+		|| log "snapshot: no data (port open, no frame or wget/timeout missing)"
+else
+	log "snapshot: skipped (streamer HTTP port not listening — streamer did not come up)"
+fi
 
 log "=== end — NOW CHECK THE WEB UI LIVE VIEW ==="
 log "picture     = stock works, port gets fixed from its tables"
