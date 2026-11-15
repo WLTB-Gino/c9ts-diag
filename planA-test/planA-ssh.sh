@@ -79,6 +79,10 @@ done
 sleep 15
 log "=== evidence: dmesg tail ==="
 run dmesg | tail -40
+log "=== probe: sensor answer (plan-A verdict lines, before truncation) ==="
+run dmesg | grep -i 'cv2005\|probe ok\|chip found\|i2c\|sensor' | tail -25
+run cat /proc/jz/isp/isp-m0
+run cat /proc/jz/sensor/info 2>/dev/null
 log "=== evidence: logread tail ==="
 run logread | tail -20
 log "=== evidence: frame/sensor signatures ==="
